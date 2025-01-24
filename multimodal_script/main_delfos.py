@@ -1,7 +1,6 @@
 import torch.nn as nn
 import torch
 import torch.optim as optim
-from utils import *
 from tqdm import tqdm
 import wandb
 from datetime import datetime
@@ -14,12 +13,13 @@ sys.path.append(str(delfos_path))
 from utils import *
 from data.transformations import transform_train, transform_test
 from data.load_data import create_dataloaders
-from data.img_dataloader import DelfosDataset
+from data.multimodal_dataloader import DelfosDataset
 from img_script.get_img_model import ImageModel
 from tabular_script.get_tab_model import TabularModel
 from multimodal_script.get_multimodal_model import MultimodalModel
 from multimodal_script.train_multimodal import train_one_epoch
 from multimodal_script.evaluate_multimodal import evaluate
+from utils import *
 
 # Parse the arguments
 args = get_main_parser()
@@ -91,12 +91,12 @@ for epoch in range(args.num_epochs):
     train_one_epoch(multimodal_model, train_loader, criterion, optimizer, epoch, device, args)
 
     # Validation phase
-    best_f1 = evaluate(multimodal_model, val_loader, criterion, device, args, mode="Validation", save_path=save_path, best_f1=best_f1)
+    best_f1 = evaluate(multimodal_model, val_loader, criterion, device, args, mode="val", save_path=save_path, best_f1=best_f1)
 
 # Test phase
 print("Loading the best model for test evaluation...")
 multimodal_model.load_state_dict(torch.load(save_path))
-evaluate(multimodal_model, test_loader, criterion, args, mode="Test")
+evaluate(multimodal_model, test_loader, criterion, args, mode="test")
 
 # Finish wandb logging
 wandb.finish()

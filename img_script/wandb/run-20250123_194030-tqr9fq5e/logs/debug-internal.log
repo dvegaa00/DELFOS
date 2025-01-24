@@ -1,0 +1,17 @@
+{"time":"2025-01-23T19:40:30.488719131-05:00","level":"INFO","msg":"using version","core version":"0.19.1"}
+{"time":"2025-01-23T19:40:30.488745509-05:00","level":"INFO","msg":"created symlink","path":"/media/SSD4/dvegaa/DELFOS/DELFOS/img_script/wandb/run-20250123_194030-tqr9fq5e/logs/debug-core.log"}
+{"time":"2025-01-23T19:40:30.607989761-05:00","level":"INFO","msg":"created new stream","id":"tqr9fq5e"}
+{"time":"2025-01-23T19:40:30.608077097-05:00","level":"INFO","msg":"stream: started","id":"tqr9fq5e"}
+{"time":"2025-01-23T19:40:30.608105387-05:00","level":"INFO","msg":"writer: Do: started","stream_id":"tqr9fq5e"}
+{"time":"2025-01-23T19:40:30.608121532-05:00","level":"INFO","msg":"sender: started","stream_id":"tqr9fq5e"}
+{"time":"2025-01-23T19:40:30.60811176-05:00","level":"INFO","msg":"handler: started","stream_id":"tqr9fq5e"}
+{"time":"2025-01-23T19:40:30.978347274-05:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-01-23T20:00:16.288465154-05:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": net/http: request canceled (Client.Timeout exceeded while awaiting headers)"}
+{"time":"2025-01-23T20:03:23.825835948-05:00","level":"INFO","msg":"stream: closing","id":"tqr9fq5e"}
+{"time":"2025-01-23T20:03:23.825889157-05:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-01-23T20:03:23.827038955-05:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-01-23T20:03:24.650384257-05:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-01-23T20:03:25.230549549-05:00","level":"INFO","msg":"handler: closed","stream_id":"tqr9fq5e"}
+{"time":"2025-01-23T20:03:25.230649304-05:00","level":"INFO","msg":"sender: closed","stream_id":"tqr9fq5e"}
+{"time":"2025-01-23T20:03:25.230634044-05:00","level":"INFO","msg":"writer: Close: closed","stream_id":"tqr9fq5e"}
+{"time":"2025-01-23T20:03:25.230799072-05:00","level":"INFO","msg":"stream: closed","id":"tqr9fq5e"}

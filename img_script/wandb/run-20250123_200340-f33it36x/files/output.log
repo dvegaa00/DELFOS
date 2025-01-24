@@ -1,0 +1,9 @@
+Dataloaders have been successfully created
+Traceback (most recent call last):
+  File "/media/SSD4/dvegaa/DELFOS/DELFOS/img_script/main_img.py", line 47, in <module>
+    model = model.build_model()
+            ^^^^^^^^^^^^^^^^^^^
+  File "/media/SSD4/dvegaa/DELFOS/DELFOS/img_script/get_img_model.py", line 37, in build_model
+    self.model = create_model("vit_tiny_patch16_224", pretrained=self.args.img_pretrained, num_classes=self.args.n_classes).to(self.device)
+                                                                 ^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Namespace' object has no attribute 'img_pretrained'

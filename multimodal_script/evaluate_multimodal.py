@@ -3,7 +3,7 @@ from tqdm import tqdm
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, classification_report
 import wandb
 
-def evaluate(model, loader, criterion, device, args, mode="Validation", save_path=None, best_f1=None):
+def evaluate(model, loader, criterion, device, args, mode="val", save_path=None, best_f1=None):
     model.eval()
     total_loss = 0.0
     y_true = torch.tensor([], dtype=torch.int64)
@@ -11,7 +11,7 @@ def evaluate(model, loader, criterion, device, args, mode="Validation", save_pat
 
     with torch.no_grad():
         for inputs, targets in tqdm(loader, desc=f"{mode}ing", unit="batch"):
-            img_data, tab_data, targets = inputs[0].to(device), inputs[1].to(device), labels.to(device)
+            img_data, tab_data, targets = inputs[0].to(device), inputs[1].to(device), targets.to(device)
 
             # Forward pass
             outputs = model(img_data, tab_data).squeeze(1)
@@ -50,12 +50,12 @@ def evaluate(model, loader, criterion, device, args, mode="Validation", save_pat
         f"{mode.lower()}_f1_score": f1,
     })
 
-    if mode == "Validation" and best_f1 is not None and f1 > best_f1:
+    if mode == "val" and best_f1 is not None and f1 > best_f1:
         best_f1 = f1
         torch.save(model.state_dict(), save_path)
         print(f"New best model saved with F1 score: {best_f1:.4f}")
 
-    if mode == "Test":
+    if mode == "test":
         roc_auc = roc_auc_score(y_true, y_score)
         report = classification_report(y_true, y_score, target_names=["No Cardiopatia", "Cardiopatia"], output_dict=True)
         wandb.log({

@@ -1,0 +1,23 @@
+2025-01-23 21:08:49,209 INFO    MainThread:602410 [wandb_setup.py:_flush():68] Current SDK version is 0.19.1
+2025-01-23 21:08:49,210 INFO    MainThread:602410 [wandb_setup.py:_flush():68] Configure stats pid to 602410
+2025-01-23 21:08:49,210 INFO    MainThread:602410 [wandb_setup.py:_flush():68] Loading settings from /home/dvegaa/.config/wandb/settings
+2025-01-23 21:08:49,210 INFO    MainThread:602410 [wandb_setup.py:_flush():68] Loading settings from /media/SSD4/dvegaa/DELFOS/DELFOS/img_script/wandb/settings
+2025-01-23 21:08:49,210 INFO    MainThread:602410 [wandb_setup.py:_flush():68] Loading settings from environment variables
+2025-01-23 21:08:49,210 INFO    MainThread:602410 [wandb_init.py:_log_setup():528] Logging user logs to /media/SSD4/dvegaa/DELFOS/DELFOS/img_script/wandb/run-20250123_210849-aq3c7tqh/logs/debug.log
+2025-01-23 21:08:49,210 INFO    MainThread:602410 [wandb_init.py:_log_setup():529] Logging internal logs to /media/SSD4/dvegaa/DELFOS/DELFOS/img_script/wandb/run-20250123_210849-aq3c7tqh/logs/debug-internal.log
+2025-01-23 21:08:49,210 INFO    MainThread:602410 [wandb_init.py:init():644] calling init triggers
+2025-01-23 21:08:49,210 INFO    MainThread:602410 [wandb_init.py:init():650] wandb.init called with sweep_config: {}
+config: {}
+2025-01-23 21:08:49,210 INFO    MainThread:602410 [wandb_init.py:init():680] starting backend
+2025-01-23 21:08:49,210 INFO    MainThread:602410 [wandb_init.py:init():684] sending inform_init request
+2025-01-23 21:08:49,219 INFO    MainThread:602410 [backend.py:_multiprocessing_setup():104] multiprocessing start_methods=fork,spawn,forkserver, using: spawn
+2025-01-23 21:08:49,220 INFO    MainThread:602410 [wandb_init.py:init():697] backend started and connected
+2025-01-23 21:08:49,221 INFO    MainThread:602410 [wandb_init.py:init():790] updated telemetry
+2025-01-23 21:08:49,226 INFO    MainThread:602410 [wandb_init.py:init():822] communicating run to backend with 90.0 second timeout
+2025-01-23 21:08:49,783 INFO    MainThread:602410 [wandb_init.py:init():874] starting run threads in backend
+2025-01-23 21:08:49,986 INFO    MainThread:602410 [wandb_run.py:_console_start():2374] atexit reg
+2025-01-23 21:08:49,987 INFO    MainThread:602410 [wandb_run.py:_redirect():2224] redirect: wrap_raw
+2025-01-23 21:08:49,987 INFO    MainThread:602410 [wandb_run.py:_redirect():2289] Wrapping output streams.
+2025-01-23 21:08:49,987 INFO    MainThread:602410 [wandb_run.py:_redirect():2314] Redirects installed.
+2025-01-23 21:08:49,989 INFO    MainThread:602410 [wandb_init.py:init():916] run started, returning control to user process
+2025-01-23 21:40:17,419 WARNING MsgRouterThr:602410 [router.py:message_loop():75] message_loop has been closed

@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import pathlib 
+import sys 
 
 delfos_path = pathlib.Path(__name__).resolve().parent.parent
 sys.path.append(str(delfos_path))

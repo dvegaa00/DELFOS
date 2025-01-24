@@ -1,0 +1,90 @@
+{
+  "os":  "Linux-6.8.0-51-generic-x86_64-with-glibc2.39",
+  "python":  "CPython 3.11.0",
+  "startedAt":  "2025-01-24T01:12:55.979594Z",
+  "args":  [
+    "--img_pretrain",
+    "True",
+    "--img_model",
+    "vit_tiny"
+  ],
+  "program":  "/media/SSD4/dvegaa/DELFOS/DELFOS/img_script/main_img.py",
+  "codePath":  "img_script/main_img.py",
+  "git":  {
+    "remote":  "git@github.com:dvegaa00/DELFOS.git",
+    "commit":  "2c8381341497e36dbe82f4d0740d23c0c852e43f"
+  },
+  "email":  "d.vegaa@uniandes.edu.co",
+  "root":  "/media/SSD4/dvegaa/DELFOS/DELFOS/img_script",
+  "host":  "lambda002",
+  "executable":  "/home/dvegaa/anaconda3/envs/medvit/bin/python",
+  "codePathLocal":  "main_img.py",
+  "cpu_count":  40,
+  "cpu_count_logical":  80,
+  "gpu":  "Quadro RTX 8000",
+  "gpu_count":  8,
+  "disk":  {
+    "/":  {
+      "total":  "1967317549056",
+      "used":  "1812963426304"
+    }
+  },
+  "memory":  {
+    "total":  "810171052032"
+  },
+  "cpu":  {
+    "count":  40,
+    "countLogical":  80
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "Quadro RTX 8000",
+      "memoryTotal":  "51539607552",
+      "cudaCores":  4608,
+      "architecture":  "Turing"
+    },
+    {
+      "name":  "Quadro RTX 8000",
+      "memoryTotal":  "51539607552",
+      "cudaCores":  4608,
+      "architecture":  "Turing"
+    },
+    {
+      "name":  "Quadro RTX 8000",
+      "memoryTotal":  "51539607552",
+      "cudaCores":  4608,
+      "architecture":  "Turing"
+    },
+    {
+      "name":  "Quadro RTX 8000",
+      "memoryTotal":  "51539607552",
+      "cudaCores":  4608,
+      "architecture":  "Turing"
+    },
+    {
+      "name":  "Quadro RTX 8000",
+      "memoryTotal":  "51539607552",
+      "cudaCores":  4608,
+      "architecture":  "Turing"
+    },
+    {
+      "name":  "Quadro RTX 8000",
+      "memoryTotal":  "51539607552",
+      "cudaCores":  4608,
+      "architecture":  "Turing"
+    },
+    {
+      "name":  "Quadro RTX 8000",
+      "memoryTotal":  "51539607552",
+      "cudaCores":  4608,
+      "architecture":  "Turing"
+    },
+    {
+      "name":  "Quadro RTX 8000",
+      "memoryTotal":  "51539607552",
+      "cudaCores":  4608,
+      "architecture":  "Turing"
+    }
+  ],
+  "cudaVersion":  "12.4"
+}

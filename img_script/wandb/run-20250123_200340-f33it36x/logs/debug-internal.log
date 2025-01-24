@@ -1,0 +1,16 @@
+{"time":"2025-01-23T20:03:40.375119062-05:00","level":"INFO","msg":"using version","core version":"0.19.1"}
+{"time":"2025-01-23T20:03:40.37515069-05:00","level":"INFO","msg":"created symlink","path":"/media/SSD4/dvegaa/DELFOS/DELFOS/img_script/wandb/run-20250123_200340-f33it36x/logs/debug-core.log"}
+{"time":"2025-01-23T20:03:40.492868789-05:00","level":"INFO","msg":"created new stream","id":"f33it36x"}
+{"time":"2025-01-23T20:03:40.492918046-05:00","level":"INFO","msg":"stream: started","id":"f33it36x"}
+{"time":"2025-01-23T20:03:40.492937688-05:00","level":"INFO","msg":"writer: Do: started","stream_id":"f33it36x"}
+{"time":"2025-01-23T20:03:40.493008903-05:00","level":"INFO","msg":"sender: started","stream_id":"f33it36x"}
+{"time":"2025-01-23T20:03:40.493085628-05:00","level":"INFO","msg":"handler: started","stream_id":"f33it36x"}
+{"time":"2025-01-23T20:03:40.855489815-05:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-01-23T20:11:17.322413869-05:00","level":"INFO","msg":"stream: closing","id":"f33it36x"}
+{"time":"2025-01-23T20:11:17.322492772-05:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-01-23T20:11:17.323562052-05:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-01-23T20:11:17.962928683-05:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-01-23T20:11:18.234053912-05:00","level":"INFO","msg":"handler: closed","stream_id":"f33it36x"}
+{"time":"2025-01-23T20:11:18.234113171-05:00","level":"INFO","msg":"sender: closed","stream_id":"f33it36x"}
+{"time":"2025-01-23T20:11:18.234104198-05:00","level":"INFO","msg":"writer: Close: closed","stream_id":"f33it36x"}
+{"time":"2025-01-23T20:11:18.234260062-05:00","level":"INFO","msg":"stream: closed","id":"f33it36x"}

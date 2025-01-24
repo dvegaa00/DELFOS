@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/media/SSD4/dvegaa/DELFOS/DELFOS/img_script/main_img.py", line 31, in <module>
+    "model": args.model})
+             ^^^^^^^^^^
+AttributeError: 'Namespace' object has no attribute 'model'

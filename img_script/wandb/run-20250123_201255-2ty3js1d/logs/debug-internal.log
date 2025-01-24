@@ -1,0 +1,16 @@
+{"time":"2025-01-23T20:12:55.984227294-05:00","level":"INFO","msg":"using version","core version":"0.19.1"}
+{"time":"2025-01-23T20:12:55.984257003-05:00","level":"INFO","msg":"created symlink","path":"/media/SSD4/dvegaa/DELFOS/DELFOS/img_script/wandb/run-20250123_201255-2ty3js1d/logs/debug-core.log"}
+{"time":"2025-01-23T20:12:56.104265425-05:00","level":"INFO","msg":"created new stream","id":"2ty3js1d"}
+{"time":"2025-01-23T20:12:56.104418408-05:00","level":"INFO","msg":"stream: started","id":"2ty3js1d"}
+{"time":"2025-01-23T20:12:56.104506071-05:00","level":"INFO","msg":"writer: Do: started","stream_id":"2ty3js1d"}
+{"time":"2025-01-23T20:12:56.104559631-05:00","level":"INFO","msg":"sender: started","stream_id":"2ty3js1d"}
+{"time":"2025-01-23T20:12:56.104662886-05:00","level":"INFO","msg":"handler: started","stream_id":"2ty3js1d"}
+{"time":"2025-01-23T20:12:56.625471996-05:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-01-23T21:08:01.662792405-05:00","level":"INFO","msg":"stream: closing","id":"2ty3js1d"}
+{"time":"2025-01-23T21:08:01.662874547-05:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-01-23T21:08:01.664378389-05:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-01-23T21:08:02.411875332-05:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-01-23T21:08:03.113720385-05:00","level":"INFO","msg":"handler: closed","stream_id":"2ty3js1d"}
+{"time":"2025-01-23T21:08:03.113792024-05:00","level":"INFO","msg":"sender: closed","stream_id":"2ty3js1d"}
+{"time":"2025-01-23T21:08:03.113771769-05:00","level":"INFO","msg":"writer: Close: closed","stream_id":"2ty3js1d"}
+{"time":"2025-01-23T21:08:03.113870209-05:00","level":"INFO","msg":"stream: closed","id":"2ty3js1d"}

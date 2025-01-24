@@ -2,10 +2,11 @@ import torch
 from torch import nn
 from timm import create_model
 import pathlib 
+import sys
 
 delfos_path = pathlib.Path(__name__).resolve().parent.parent
 sys.path.append(str(delfos_path))
-from DELFOS.img_script.img_models.MedViT import MedViT_small
+from img_script.img_models.MedViT import MedViT_small
 
 class ImageModel:
     def __init__(self, args):
@@ -33,10 +34,10 @@ class ImageModel:
             pass
         
         elif self.args.img_model == "vit_tiny":
-            self.model = create_model("vit_tiny_patch16_224", pretrained=self.args.img_pretrained, num_classes=self.args.n_classes).to(self.device)
+            self.model = create_model("vit_tiny_patch16_224", pretrained=self.args.img_pretrain, num_classes=self.args.n_classes).to(self.device)
 
         elif self.args.img_model == "vit_small":
-            self.model = create_model("vit_small_patch16_224", pretrained=self.args.img_pretrained, num_classes=self.args.n_classes).to(self.device)
+            self.model = create_model("vit_small_patch16_224", pretrained=self.args.img_pretrain, num_classes=self.args.n_classes).to(self.device)
 
         elif self.args.img_model == "medvit":
             model = MedViT_small(num_classes=self.args.n_classes, path_dropout=0.1, attn_drop=0.3, drop=0.3).to(self.device)

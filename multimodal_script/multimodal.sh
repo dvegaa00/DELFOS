@@ -1,0 +1,2 @@
+CUDA_VISIBLE_DEVICES=5 python main_delfos_kfold.py --num_epochs 30 --loss_factor 3 --img_model vit_small --img_checkpoint vit_small --tab_checkpoint /home/dvegaa/DELFOS/MedViT/tabular_models/model_2025-01-20_13-42-37.pth --img_feature_dim 384 --embed_dim 384
+CUDA_VISIBLE_DEVICES=3 python main_delfos_kfold.py --num_epochs 30 --loss_factor 3 --img_model vit_small --img_checkpoint vit_small --tab_checkpoint /home/dvegaa/DELFOS/MedViT/tabular_models/model_2025-01-20_13-42-37.pth --img_feature_dim 384 --embed_dim 384 --multimodal_model mlp

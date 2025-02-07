@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class TransformerSelfCross(nn.Module):
+class TransformerCrossAttention(nn.Module):
     def __init__(self, args, img_model, tab_model, img_feature_dim, tab_feature_dim, embed_dim, num_heads, num_layers, num_classes=1, dropout=0.3, class_dropout=0.1):
         super().__init__()
         
@@ -22,9 +22,12 @@ class TransformerSelfCross(nn.Module):
             nn.LayerNorm(embed_dim),
             nn.ReLU(inplace=True)
         )
-        
-        # Modality encoders
-        encoder_layer = nn.TransformerEncoderLayer(
+
+        # Positional encoding for image features (query)
+        self.positional_encoding = PositionalEncoding(embed_dim, dropout)
+
+        # Transformer Decoder
+        decoder_layer = nn.TransformerDecoderLayer(
             d_model=embed_dim,
             nhead=num_heads,
             dim_feedforward=embed_dim * 2,
@@ -32,27 +35,15 @@ class TransformerSelfCross(nn.Module):
             batch_first=True
         )
         
-        self.img_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
-        self.tab_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+        self.decoder_img = nn.TransformerDecoder(decoder_layer, num_layers=num_layers)
+        self.decoder_tab = nn.TransformerDecoder(decoder_layer, num_layers=num_layers)
         
-        # LayerNorm after each encoder
-        self.img_norm = nn.LayerNorm(embed_dim)
-        self.tab_norm = nn.LayerNorm(embed_dim)
-
-        # Positional encoding for image features (query)
-        self.positional_encoding = PositionalEncoding(embed_dim, dropout)
-
-        # Cross-Attention Fusion layers (stacked)
-        self.cross_attention_stack = nn.ModuleList([
-            CrossAttentionFusion(embed_dim=embed_dim, num_heads=num_heads, dropout=dropout)
-            for _ in range(num_layers)
-        ])
-        
-        self.final_norm = nn.LayerNorm(embed_dim)
+        self.final_norm_img = nn.LayerNorm(embed_dim)
+        self.final_norm_tab = nn.LayerNorm(embed_dim)
 
         # Classifier for every patient
         self.classifier = nn.Sequential(
-            nn.Linear(embed_dim, embed_dim // 2),
+            nn.Linear(embed_dim*2, embed_dim // 2),
             nn.ReLU(),
             nn.Dropout(class_dropout),
             nn.Linear(embed_dim // 2, embed_dim // 4),
@@ -83,20 +74,22 @@ class TransformerSelfCross(nn.Module):
         #img_features = self.positional_encoding(img_features)
         #tab_features = self.positional_encoding(tab_features)
         
-        # Pass through the modality-specific Transformer encoders
-        img_features = self.img_encoder(img_features)
-        tab_features = self.tab_encoder(tab_features)
+        img_features = self.decoder_img(
+            tgt=img_features,  # Query features (images)
+            memory=tab_features  # Key-value features (tabular data)
+        )  
         
-        # Apply LayerNorm after each encoder
-        img_features = self.img_norm(img_features)
-        tab_features = self.tab_norm(tab_features)
+        tab_features = self.decoder_tab(
+            tgt=tab_features,  # Query features (tabular data)
+            memory=img_features  # Key-value features (images)
+        )  
 
-        # Stacked cross-attention layers
-        for cross_attention_layer in self.cross_attention_stack:
-            fused_features = cross_attention_layer(query=img_features, key_value=tab_features)
-            
         # Classify each patient
-        output = self.final_norm(fused_features).squeeze(0)
+        output_img = self.final_norm_img(img_features).squeeze(0)
+        output_tab = self.final_norm_tab(tab_features).squeeze(0)
+        
+        output = torch.cat((output_img, output_tab), dim=1)
+        
         logits = self.classifier(output)
         
         return logits
@@ -131,4 +124,3 @@ class CrossAttentionFusion(nn.Module):
     def forward(self, query, key_value):
         attn_output, _ = self.multihead_attn(query, key_value, key_value)
         return self.norm(query + self.dropout(attn_output))
-

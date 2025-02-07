@@ -8,7 +8,7 @@ import os
 import pathlib
 import sys
 import numpy as np
-import random
+import matplotlib.pyplot as plt
 
 delfos_path = pathlib.Path(__name__).resolve().parent.parent
 sys.path.append(str(delfos_path))
@@ -22,6 +22,7 @@ from multimodal_script.get_multimodal_model import MultimodalModel
 from multimodal_script.train_multimodal import train_one_epoch
 from multimodal_script.evaluate_multimodal import evaluate
 from utils import *
+import random
 
 # Parse the arguments
 args = get_main_parser()
@@ -29,26 +30,26 @@ args = get_main_parser()
 exp_name = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 wandb.init(project="MultiModal", 
            entity="spared_v2", 
-           name=exp_name )
+           name=exp_name)
 
 config = wandb.config
 wandb.log({"args": vars(args),
-           "model": "multimodal_kfold"})
+           "model": "multimodal"})
 
-# K-Fold Cross Validation
+# Define parameters for pr curve
+pr_curve = {"precision_train":[],
+            "recall_train":[],
+            "thresholds_train":[],
+            "precision_test":[],
+            "recall_test":[],
+            "thresholds_test":[],}
+
 folds = args.folds
-best_f1_folds = []
+best_thresholds = []
 
+test_loader_all = []
+models = []
 for fold in range(folds):
-    
-    # Define parameters for pr curve
-    pr_curve = {"precision_train":[],
-                "recall_train":[],
-                "thresholds_train":[],
-                "precision_test":[],
-                "recall_test":[],
-                "thresholds_test":[],}
-    
     set_seed(42)
     
     if args.folds == 3:
@@ -67,12 +68,11 @@ for fold in range(folds):
         args=args,
         multimodal=True
     )
-    #dataloader.append((train_loader, test_loader))
-    print(num_negatives)
-    print(num_positives)
-
+    
+    test_loader_all.append(test_loader)
+    
     # Load multimodal model
-    device = "cuda" 
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     #Get image model
     #"/home/dvegaa/DELFOS/MedViT/MedViT_models/2025-01-22-14-26-21/best_model.pth"
     img_model = ImageModel(args)
@@ -108,76 +108,15 @@ for fold in range(folds):
     multimodal_model = MultimodalModel(img_model=img_model, tab_model=tab_model, args=args)
     multimodal_model = multimodal_model.build_model()
     multimodal_model = multimodal_model.to(device)
-    
-    #checkpoint = "/home/dvegaa/DELFOS/DELFOS/multimodal_script/multimodal_checkpoints/2025-02-02-22-18-57/fold1_best_model.pth"
-    #checkpoint = torch.load(checkpoint, map_location = torch.device("cuda"), weights_only=True)
-    #multimodal_model.load_state_dict(checkpoint, strict=False)
-    
-    # Define loss function
-    loss_weights = torch.tensor([num_negatives / num_positives], dtype=torch.float32).to(device)
-    if args.loss_factor == 0:
-        loss_weights = None
-    elif args.loss_factor > 1:
-        loss_weights = torch.tensor(args.loss_factor).to(device)
-    else:
-        loss_weights = loss_weights*args.loss_factor
-    
-    print(loss_weights)
-    
-    #criterion_smooth = BCEWithLogitsLossLabelSmoothing(alpha=0.1, pos_weight=loss_weights)
-    criterion = nn.BCEWithLogitsLoss(pos_weight=loss_weights).to(device)
 
-    # Define optimizer
-    optimizer = optim.AdamW(multimodal_model.parameters(), lr=args.lr, betas=(0.9, 0.999), weight_decay=args.weight_decay)
-
-    # Run training, validation and evaluation loop
-    best_f1 = 0.0
-    best_f1_count = 0.0
-    patience = 10
-    counter = 0
-    #Save best model
-    save_path = os.path.join("multimodal_checkpoints", exp_name, f"fold{fold}_best_model.pth")
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    for epoch in range(args.num_epochs):
-        print(f"Epoch [{epoch+1}/{args.num_epochs}]")
-
-        # Training phase
-        train_one_epoch(multimodal_model, train_loader, criterion, optimizer, epoch, device, fold, args)
-
-        #Validation phase
-        best_f1, current_f1, val_loss = evaluate(multimodal_model, test_loader, criterion, device, fold, args, mode="val", save_path=save_path, best_f1=best_f1)
-        
-        print(val_loss)
-        if current_f1 >= best_f1_count:
-            best_f1_count = current_f1
-            counter = 0
-        else:
-            print("counter + 1")
-            counter += 1
-            print(counter)
-            print(best_f1_count)
-        
-        if counter >= patience:
-            print(f"Early stopping triggered after {epoch + 1} epochs.")
-            break
-        
-        print(f"best f1-score: {best_f1}")
+    exp_name = args.exp_name
+    multimodal_checkpoint = os.path.join("/home/dvegaa/DELFOS/DELFOS/multimodal_script/multimodal_checkpoints", exp_name, f"fold{fold}_best_model.pth")
+    multimodal_checkpoint = torch.load(multimodal_checkpoint, map_location = torch.device("cuda"), weights_only=True)
+    multimodal_model.load_state_dict(multimodal_checkpoint, strict=True)
+    multimodal_model = multimodal_model.to(device)
+    models.append(multimodal_model)
     
-    # Test phase
-    print("Loading the best model for test evaluation...")
-    multimodal_model.load_state_dict(torch.load(save_path))
-    evaluate(multimodal_model, test_loader, criterion, device, fold, args, mode="test")
-
-    best_f1_folds.append(best_f1)
-    mean_f1 = np.mean(best_f1_folds)
-    std_f1 = np.std(best_f1_folds)
-    
-    wandb.log({"average_f1_score": mean_f1})
-    wandb.log({"std_f1_score": std_f1})
-    
-    # Plot PR Curve
-    ## TEST
-    print("Plotting Precision-Recall Curve")
+    # Assuming model, val_loader, test_loader, and device are defined
     _, precision, recall, thresholds = find_best_threshold_multimodal(multimodal_model, test_loader, device)
     
     pr_curve["precision_test"].append(precision)
@@ -185,16 +124,57 @@ for fold in range(folds):
     pr_curve["thresholds_test"].append(thresholds)
 
     # Get best threshold for train split for visualization of pr curve
-    ## TRAIN
     _, precision, recall, thresholds = find_best_threshold_multimodal(multimodal_model, train_loader, device)
     
     pr_curve["precision_train"].append(precision)
     pr_curve["recall_train"].append(recall)
     pr_curve["thresholds_train"].append(thresholds)
 
-    path_plot = os.path.join("multimodal_checkpoints", exp_name, f"image_{fold}.png")
-    plot_prcurve(pr_curve=pr_curve, path=path_plot)
+plot_prcurve(pr_curve=pr_curve, path=f"pr_curve/image_{args.exp_name}.png")
+
+# Evaluate on the test set using the best threshold
+metrics_folds ={"precision":[],
+                "recall": [],
+                "f1-score": [],
+                "roc auc": []}
+
+
+for fold in range(folds):
+    precision_test, recall_test, accuracy_test, f1_test, roc_auc_test, y_score_test, y_true_test = evaluate_threshold_multimodal(models[fold], test_loader_all[fold], device, 0.5)
+    #print metrics for folds
+    print(f"Test Metrics_{fold}:")
+    print(f"Precision: {precision_test:.4f}")
+    print(f"Recall: {recall_test:.4f}")
+    print(f"F1-Score: {f1_test:.4f}")
+    print(f"ROC AUC: {roc_auc_test:.4f}")
     
+    metrics_folds["precision"].append(precision_test)
+    metrics_folds["recall"].append(recall_test)
+    metrics_folds["f1-score"].append(f1_test)
+    metrics_folds["roc auc"].append(roc_auc_test)
     
-# Finish wandb logging
+# Compute mean and standard deviation for each metric
+metrics_summary = {}
+for key, values in metrics_folds.items():
+    mean_value = np.mean(values)
+    std_value = np.std(values)
+    metrics_summary[key] = {"mean": mean_value, "std": std_value}
+
+# Log final mean and standard deviation metrics to Weights & Biases
+wandb.log({
+    "precision_mean": float(metrics_summary["precision"]["mean"]),
+    "precision_std": float(metrics_summary["precision"]["std"]),
+    "recall_mean": float(metrics_summary["recall"]["mean"]),
+    "recall_std": float(metrics_summary["recall"]["std"]),
+    "f1-score_mean": float(metrics_summary["f1-score"]["mean"]),
+    "f1-score_std": float(metrics_summary["f1-score"]["std"]),
+    "roc_auc_mean": float(metrics_summary["roc auc"]["mean"]),
+    "roc_auc_std": float(metrics_summary["roc auc"]["std"])
+})
+
+# Print final logged metrics for verification
+print("\nFinal Logged Metrics to wandb:")
+for metric, summary in metrics_summary.items():
+    print(f"{metric}: Mean = {summary['mean']:.4f}, Std = {summary['std']:.4f}")
+
 wandb.finish()

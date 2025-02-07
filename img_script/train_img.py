@@ -2,13 +2,13 @@ import torch
 from tqdm import tqdm
 import wandb
 
-def train_one_epoch(model, train_loader, criterion, optimizer, epoch, device, args):
+def train_one_epoch(model, train_loader, criterion, optimizer, epoch, device, fold, args):
     model.train()
     running_loss = 0.0
     progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{args.num_epochs}", unit="batch")
 
     for inputs, targets in progress_bar:
-        inputs, targets = inputs.to(device), targets.unsqueeze(1).to(device)
+        inputs, targets = inputs[0].to(device), targets.unsqueeze(1).to(device)
 
         # Forward + backward + optimize
         optimizer.zero_grad()
@@ -24,4 +24,4 @@ def train_one_epoch(model, train_loader, criterion, optimizer, epoch, device, ar
 
     avg_loss = running_loss / len(train_loader)
     print(f"Epoch [{epoch+1}/{args.num_epochs}], Average Loss: {avg_loss:.4f}")
-    wandb.log({"epoch": epoch+1, "loss": avg_loss})
+    wandb.log({"epoch": epoch+1, f"loss_{fold}": avg_loss})

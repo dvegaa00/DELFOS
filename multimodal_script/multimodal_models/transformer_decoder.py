@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class TransformerDecoder(nn.Module):
-    def __init__(self, args, img_model, tab_model, img_feature_dim, tab_feature_dim, embed_dim, num_heads, num_layers, num_classes=1, dropout=0.3):
+    def __init__(self, args, img_model, tab_model, img_feature_dim, tab_feature_dim, embed_dim, num_heads, num_layers, num_classes=1, dropout=0.3, class_dropout=0.1):
         super().__init__()
 
         self.img_model = img_model  # Image feature extractor
@@ -42,10 +42,10 @@ class TransformerDecoder(nn.Module):
         self.classifier = nn.Sequential(
             nn.Linear(embed_dim, embed_dim // 2),
             nn.ReLU(),
-            nn.Dropout(0.1),
+            nn.Dropout(class_dropout),
             nn.Linear(embed_dim // 2, embed_dim // 4),
             nn.ReLU(),
-            nn.Dropout(0.1),
+            nn.Dropout(class_dropout),
             nn.Linear(embed_dim // 4, num_classes)
         )
 
@@ -60,15 +60,17 @@ class TransformerDecoder(nn.Module):
         # Extract image features
         with torch.no_grad() if self.args.img_checkpoint else torch.enable_grad():
             img_features = self.img_model(img_input)  # (batch_size, img_feature_dim)
+            
         img_features = self.img_proj(img_features).unsqueeze(0)  # Add sequence dimension: (1, batch_size, embed_dim)
 
         # Extract tabular features
         with torch.no_grad() if self.args.tab_checkpoint else torch.enable_grad():
             tab_features = self.tab_model(tab_input)  # (batch_size, tab_feature_dim)
+            
         tab_features = self.tab_proj(tab_features).unsqueeze(0)  # Add sequence dimension: (1, batch_size, embed_dim)
 
         # Add positional encoding to image features (query)
-        img_features = self.positional_encoding(img_features)
+        #img_features = self.positional_encoding(img_features)
 
         # Decode using cross-attention (image as query, tabular as key-value)
         decoded_features = self.decoder(

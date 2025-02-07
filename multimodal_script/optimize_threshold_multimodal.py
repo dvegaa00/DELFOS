@@ -37,9 +37,12 @@ wandb.log({"args": vars(args),
            "model": "multimodal"})
 
 # Define parameters for pr curve
-pr_curve = {"precision":[],
-            "recall":[],
-            "thresholds":[]}
+pr_curve = {"precision_train":[],
+            "recall_train":[],
+            "thresholds_train":[],
+            "precision_test":[],
+            "recall_test":[],
+            "thresholds_test":[],}
 
 folds = args.folds
 best_thresholds = []
@@ -48,13 +51,21 @@ test_loader_all = []
 models = []
 for fold in range(folds):
     set_seed(42)
+    
+    if args.folds == 3:
+        dataset_path = f"/home/dvegaa/DELFOS/delfos_final_dataset/delfos_images_kfold/fold_{fold+1}"
+    elif args.folds == 4:
+        dataset_path = f"/home/dvegaa/DELFOS/delfos_final_dataset/delfos_images_4kfold/fold_{fold+1}"
+    
     train_loader, _, test_loader, num_negatives, num_positives = create_dataloaders(
-        dataset_dir = f"/home/dvegaa/DELFOS/delfos_final_dataset/delfos_images_kfold/fold_{fold+1}",
+        dataset_dir = dataset_path,
         json_root = "/home/dvegaa/DELFOS/delfos_final_dataset/delfos_clinical_data_wnm_standarized_woe.json",
         dataset_class=DelfosDataset,
         transform_train=transform_train,
         transform_test=transform_test,
         batch_size=args.batch_size,
+        fold=fold,
+        args=args,
         multimodal=True
     )
     
@@ -74,6 +85,8 @@ for fold in range(folds):
 
     if args.img_model == "medvit":
         img_model.proj_head = torch.nn.Identity()
+    elif args.img_model == "resnet18" or args.img_model == "resnet50":
+        img_model.fc = torch.nn.Identity()
     else:
         img_model.head = torch.nn.Identity()
     img_model = img_model.to(device)
@@ -96,7 +109,7 @@ for fold in range(folds):
     multimodal_model = multimodal_model.build_model()
     multimodal_model = multimodal_model.to(device)
 
-    exp_name = "2025-01-29-02-51-36"
+    exp_name = args.exp_name
     multimodal_checkpoint = os.path.join("/home/dvegaa/DELFOS/DELFOS/multimodal_script/multimodal_checkpoints", exp_name, f"fold{fold}_best_model.pth")
     multimodal_checkpoint = torch.load(multimodal_checkpoint, map_location = torch.device("cuda"), weights_only=True)
     multimodal_model.load_state_dict(multimodal_checkpoint, strict=True)
@@ -108,22 +121,18 @@ for fold in range(folds):
     print(f"Best Threshold (Validation): {best_threshold:.4f}")
     best_thresholds.append(best_threshold)
     
-    pr_curve["precision"].append(precision)
-    pr_curve["recall"].append(recall)
-    pr_curve["thresholds"].append(thresholds)
+    pr_curve["precision_test"].append(precision)
+    pr_curve["recall_test"].append(recall)
+    pr_curve["thresholds_test"].append(thresholds)
 
-# Plot pr curve
-plt.figure(figsize=(8, 6))
-for i, (precision, recall) in enumerate(zip(pr_curve["precision"], pr_curve["recall"]), 1):
-    plt.plot(recall, precision, label=f'Fold {i}')
+    # Get best threshold for train split for visualization of pr curve
+    _, precision, recall, thresholds = find_best_threshold_multimodal(multimodal_model, train_loader, device)
+    
+    pr_curve["precision_train"].append(precision)
+    pr_curve["recall_train"].append(recall)
+    pr_curve["thresholds_train"].append(thresholds)
 
-# Add labels and legend
-plt.xlabel('Recall')
-plt.ylabel('Precision')
-plt.title('Precision-Recall Curve per Fold')
-plt.legend()
-plt.grid()
-plt.savefig(f"pr_curve/image_{args.multimodal_model}.png")
+plot_prcurve(pr_curve=pr_curve, path=f"pr_curve/image_{args.exp_name}.png")
 
 # Evaluate on the test set using the best threshold
 mean_threshold = np.mean(best_thresholds)
@@ -135,7 +144,7 @@ print(f"Mean Threshold: {mean_threshold:.4f}")
 
 
 for fold in range(folds):
-    precision_test, recall_test, accuracy_test, f1_test, roc_auc_test, y_score_test, y_true_test = evaluate_threshold_multimodal(models[fold], test_loader_all[fold], device, 0.5)
+    precision_test, recall_test, accuracy_test, f1_test, roc_auc_test, y_score_test, y_true_test = evaluate_threshold_multimodal(models[fold], test_loader_all[fold], device, mean_threshold)
     #print metrics for folds
     print(f"Test Metrics_{fold}:")
     print(f"Precision: {precision_test:.4f}")

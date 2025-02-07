@@ -36,9 +36,12 @@ wandb.log({"args": vars(args),
            "model": args.img_model})
 
 # Define parameters for pr curve
-pr_curve = {"precision":[],
-            "recall":[],
-            "thresholds":[]}
+pr_curve = {"precision_train":[],
+            "recall_train":[],
+            "thresholds_train":[],
+            "precision_test":[],
+            "recall_test":[],
+            "thresholds_test":[],}
 
 folds = args.folds
 best_thresholds = []
@@ -47,13 +50,21 @@ test_loader_all = []
 models = []
 for fold in range(folds):
     set_seed(42)
+    
+    if args.folds == 3:
+        dataset_path = f"/home/dvegaa/DELFOS/delfos_final_dataset/delfos_images_kfold/fold_{fold+1}"
+    elif args.folds == 4:
+        dataset_path = f"/home/dvegaa/DELFOS/delfos_final_dataset/delfos_images_4kfold/fold_{fold+1}"
+     
     train_loader, _, test_loader, num_negatives, num_positives = create_dataloaders(
-        dataset_dir = f"/home/dvegaa/DELFOS/delfos_final_dataset/delfos_images_kfold/fold_{fold+1}",
+        dataset_dir = dataset_path,
         json_root = "",
         dataset_class=DelfosDataset,
         transform_train=transform_train,
         transform_test=transform_test,
         batch_size=args.batch_size,
+        fold=fold,
+        args=args,
         multimodal=False
     )
     
@@ -61,41 +72,37 @@ for fold in range(folds):
     
     # Load multimodal model
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    
     #Get image model
     #"/home/dvegaa/DELFOS/MedViT/MedViT_models/2025-01-22-14-26-21/best_model.pth"
     img_model = ImageModel(args)
     img_model = img_model.build_model()
     img_model = img_model.to(device)
 
-
-    exp_name = "2025-01-28-13-54-20"
+    exp_name = args.exp_name
     img_checkpoint = os.path.join("/home/dvegaa/DELFOS/DELFOS/img_script/image_checkpoints", exp_name, f"fold{fold}_best_model.pth")
     img_checkpoint = torch.load(img_checkpoint, map_location = torch.device("cuda"), weights_only=True)
     img_model.load_state_dict(img_checkpoint, strict=False)
     img_model = img_model.to(device)
     models.append(img_model)
     
-    # Assuming model, val_loader, test_loader, and device are defined
+    # Get best threshold for val split
     best_threshold, precision, recall, thresholds = find_best_threshold_img(img_model, test_loader, device)
     print(f"Best Threshold (Validation): {best_threshold:.4f}")
     best_thresholds.append(best_threshold)
     
-    pr_curve["precision"].append(precision)
-    pr_curve["recall"].append(recall)
-    pr_curve["thresholds"].append(thresholds)
+    pr_curve["precision_test"].append(precision)
+    pr_curve["recall_test"].append(recall)
+    pr_curve["thresholds_test"].append(thresholds)
 
-# Plot pr curve
-plt.figure(figsize=(8, 6))
-for i, (precision, recall) in enumerate(zip(pr_curve["precision"], pr_curve["recall"]), 1):
-    plt.plot(recall, precision, label=f'Fold {i}')
+    # Get best threshold for train split for visualization of pr curve
+    _, precision, recall, thresholds = find_best_threshold_img(img_model, train_loader, device)
+    
+    pr_curve["precision_train"].append(precision)
+    pr_curve["recall_train"].append(recall)
+    pr_curve["thresholds_train"].append(thresholds)
 
-# Add labels and legend
-plt.xlabel('Recall')
-plt.ylabel('Precision')
-plt.title('Precision-Recall Curve per Fold')
-plt.legend()
-plt.grid()
-plt.savefig(f"pr_curve/image_{args.img_model}.png")
+plot_prcurve(pr_curve=pr_curve, path=f"pr_curve/image_{args.img_model}_{args.exp_name}.png")
 
 # Evaluate on the test set using the best threshold
 mean_threshold = np.mean(best_thresholds)
@@ -107,6 +114,7 @@ metrics_folds ={"precision":[],
                 "roc auc": []}
 
 for fold in range(folds):
+    mean_threshold = 0.5
     precision_test, recall_test, accuracy_test, f1_test, roc_auc_test, report_test, y_score_test, y_true_test = evaluate_threshold_img(models[fold], test_loader_all[fold], device, mean_threshold)
     #print metrics for folds
     print(f"Test Metrics_{fold}:")

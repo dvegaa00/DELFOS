@@ -2,22 +2,30 @@ import torch
 from torch import nn
 
 class TransformerPatientPerEncoder(nn.Module):
-    def __init__(self, img_model, tab_model, img_feature_dim, tab_feature_dim, embed_dim, num_heads, num_layers, num_classes=1, dropout=0.1):
+    def __init__(self, args, img_model, tab_model, img_feature_dim, tab_feature_dim, embed_dim, num_heads, num_layers, num_classes=1, dropout=0.3, class_dropout=0.1):
         super().__init__()
         
         self.img_model = img_model  # Modelo de imágenes
         self.tab_model = tab_model  # Modelo de información tabular
+        self.embed_dim = embed_dim 
+        self.args = args
         
         # Fusion layer: Concatenar los features
         combined_dim = img_feature_dim + img_feature_dim
         
         # Projection layers for alignment
-        self.tab_proj = nn.Linear(tab_feature_dim, img_feature_dim)  # Tab features remain as 64 (optional)
+        self.img_proj = nn.Sequential(nn.Linear(img_feature_dim, img_feature_dim),
+                                      nn.LayerNorm(img_feature_dim),
+                                      nn.ReLU(inplace=True))
+                                      
+        self.tab_proj = nn.Sequential(nn.Linear(tab_feature_dim, img_feature_dim),
+                                      nn.LayerNorm(img_feature_dim),
+                                      nn.ReLU(inplace=True))
         
-        self.embed_dim = embed_dim
-
         # Proyección de características de pacientes a embedding
-        self.feature_embedding = nn.Linear(combined_dim, embed_dim)
+        self.feature_embedding = nn.Sequential(nn.Linear(combined_dim, embed_dim),
+                                      nn.LayerNorm(embed_dim),
+                                      nn.ReLU(inplace=True))
         
         # Codificación posicional
         self.positional_encoding = PositionalEncoding(embed_dim, dropout)
@@ -26,55 +34,60 @@ class TransformerPatientPerEncoder(nn.Module):
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=embed_dim,
             nhead=num_heads,
-            dim_feedforward=embed_dim * 4,
+            dim_feedforward=embed_dim * 2,
             dropout=dropout,
             batch_first=True
         )
         self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
-
-        # Clasificador para cada paciente
+        self.norm = nn.LayerNorm(embed_dim)
+        
+        # Classifier for every patient
         self.classifier = nn.Sequential(
-            nn.Linear(embed_dim, 512),  # Primera capa con más unidades
+            nn.Linear(embed_dim, embed_dim//2),  # Primera capa con más unidades
             nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(512, 128),  # Reduciendo gradualmente la dimensionalidad
+            nn.Dropout(class_dropout),
+            nn.Linear(embed_dim//2, embed_dim//4),  # Reduciendo gradualmente la dimensionalidad
             nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(128, num_classes)  # Salida binaria
+            nn.Dropout(class_dropout),
+            nn.Linear(embed_dim//4, num_classes)  # Salida binaria
         )
         
     def forward(self, img_input, tab_input):
         """
         Args:
-            x: Tensor de entrada de forma (batch_size, num_patients, num_features)
+            img_input: imagen de entrada
+            tab_input: información tabular
         Returns:
             logits: Tensor de salida de forma (batch_size, num_patients, num_classes)
         """
-        #breakpoint()
-        with torch.no_grad():
-            img_features = self.img_model(img_input)
+        # Extract image features
+        with torch.no_grad() if self.args.img_checkpoint else torch.enable_grad():
+            img_features = self.img_model(img_input)  # (batch_size, img_feature_dim)
+        img_features = self.img_proj(img_features)  # Add sequence dimension: (1, batch_size, embed_dim)
         
-        # Obtener los features de la información tabular
-        with torch.no_grad():
-            tab_features = self.tab_model(tab_input)
-        tab_features = self.tab_proj(tab_features)
+       # Extract tabular features
+        with torch.no_grad() if self.args.tab_checkpoint else torch.enable_grad():
+            tab_features = self.tab_model(tab_input)  # (batch_size, tab_feature_dim)
+        tab_features = self.tab_proj(tab_features)  # Add sequence dimension: (1, batch_size, embed_dim)
         
         # Concatenar ambos features
         combined_features = torch.cat((img_features, tab_features), dim=1)
         
-        combined_features = combined_features.unsqueeze(0)
+        combined_features = combined_features.unsqueeze(0) #batch_size, features (8, 2048) --> (1, 8, 2048)
         # Proyectar las características de pacientes a embeddings
         x = self.feature_embedding(combined_features)  # (batch_size, num_patients, embed_dim)
 
         # Añadir codificación posicional
-        x = self.positional_encoding(x)  # (batch_size, num_patients, embed_dim)
+        #x = self.positional_encoding(x)  # (batch_size, num_patients, embed_dim)
 
         # Pasar por el Transformer Encoder
         x = self.encoder(x)  # (batch_size, num_patients, embed_dim)
-
+        
+        x = self.norm(x).squeeze(0) # (num_patients, embed_dim)
+        
         # Clasificar cada paciente
-        logits = self.classifier(x)  # (batch_size, num_patients, num_classes)
-        return logits.squeeze(0)
+        logits = self.classifier(x)  # (num_patients, num_classes)
+        return logits
 
 
 class PositionalEncoding(nn.Module):

@@ -75,7 +75,7 @@ def create_k_folds(data_dir, output_dir, k=5):
 
 
 data_dir = "/home/dvegaa/DELFOS/delfos_final_dataset/delfos_images"  # Dataset directory with subfolders for each class
-output_dir = "/home/dvegaa/DELFOS/delfos_final_dataset/delfos_images_kfold"  # Where to save the folds
-create_k_folds(data_dir, output_dir, k=3)
+output_dir = "/home/dvegaa/DELFOS/delfos_final_dataset/delfos_images_4kfold"  # Where to save the folds
+create_k_folds(data_dir, output_dir, k=4)
 
 

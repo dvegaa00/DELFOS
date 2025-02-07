@@ -20,22 +20,28 @@ torch.backends.cudnn.deterministic = True
 
 class DelfosDataset(Dataset):
     def __init__(self, root, json_root, transform, transform_doppler=None):
-        self.classes = ["Cardiopatia", "No Cardiopatia"]
+        """
+        Args:
+            root (str): Path to the root directory containing class subfolders.
+            json_root (str): Path to the JSON file with patient information.
+            transform (callable): Transformations for the images.
+            transform_doppler (callable, optional): Transformations specific to Doppler images.
+        """
+        self.classes = ["Cardiopatia", "No_Cardiopatia"]
         self.root = root
         self.json_root = json_root
         self.transform = transform
         self.transform_doppler = transform_doppler
 
-        self.images = []
-        self.labels = []
+        self.data = []  # Preloaded (image, patient_info, label) tuples
         self.patient_info = {}
-        self.class_to_idx = {'Cardiopatia': 1, 'No Cardiopatia': 0}
+        self.class_to_idx = {'Cardiopatia': 1, 'No_Cardiopatia': 0}
 
         # Load patient info from JSON
         self._load_patient_info()
 
-        # Load images and labels
-        self._load_data()
+        # Preload images and labels
+        self._preload_data()
 
     def _load_patient_info(self):
         """Load patient information from JSON."""
@@ -68,8 +74,8 @@ class DelfosDataset(Dataset):
                     embedding.append(value)
             self.patient_info[patient_id] = np.array(embedding, dtype=np.float32)
 
-    def _load_data(self):
-        """Load image paths and labels from class directories."""
+    def _preload_data(self):
+        """Preload all images and labels into memory."""
         for class_name in self.classes:
             class_folder = os.path.join(self.root, class_name)
 
@@ -88,21 +94,22 @@ class DelfosDataset(Dataset):
                     print(f"Warning: No patient info found for {id_folder}")
                     continue
 
-                for image in os.listdir(id_path):
-                    image_path = os.path.join(id_path, image)
-                    if image.lower().endswith((".png", ".jpg", ".jpeg")):
-                        self.images.append((image_path, patient_info))
-                        self.labels.append(self.class_to_idx[class_name])
+                for image_name in os.listdir(id_path):
+                    image_path = os.path.join(id_path, image_name)
+                    if image_name.lower().endswith((".png", ".jpg", ".jpeg")):
+                        # Preload image into memory
+                        image = Image.open(image_path).convert("RGB")
+                        image = self.transform(np.array(image))  # Apply transformations here
+                        label = self.class_to_idx[class_name]
+
+                        # Store (image, patient_info, patient_id, label) tuple
+                        self.data.append((image, patient_info, id_folder, label))
 
     def __len__(self):
-        return len(self.labels)
+        return len(self.data)
 
     def __getitem__(self, idx):
-        # Load and transform image
-        image_path, patient_info = self.images[idx]
-        image = Image.open(image_path).convert("RGB")
-        image = self.transform(np.array(image))
-
-        # Label and patient feature vector
-        label = self.labels[idx]
-        return (image, torch.tensor(patient_info, dtype=torch.float32)), label
+        """Return preloaded data."""
+        image, patient_info, patient_id, label = self.data[idx]
+        
+        return (image, torch.tensor(patient_info, dtype=torch.float32), patient_id), label

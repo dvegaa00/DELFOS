@@ -2,16 +2,24 @@ import torch
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, classification_report
 import wandb
+from collections import defaultdict
+import pathlib
+import sys
+import numpy as np
 
-def evaluate(model, loader, criterion, device, args, mode="val", save_path=None, best_f1=None):
+delfos_path = pathlib.Path(__name__).resolve().parent.parent
+sys.path.append(str(delfos_path))
+from get_metrics import *
+
+def evaluate(model, loader, criterion, device, fold, args, mode="val", save_path=None, best_f1=None):
     model.eval()
     total_loss = 0.0
-    y_true = torch.tensor([], dtype=torch.int64)
-    y_score = torch.tensor([])
+    y_true_patient = {}
+    y_score_patient = defaultdict(list)
 
     with torch.no_grad():
         for inputs, targets in tqdm(loader, desc=f"{mode}ing", unit="batch"):
-            inputs = inputs.to(device)
+            inputs, patient_ids = inputs[0].to(device), inputs[1]
             targets = targets.unsqueeze(1).to(device)
 
             outputs = model(inputs)
@@ -19,48 +27,33 @@ def evaluate(model, loader, criterion, device, args, mode="val", save_path=None,
             loss = criterion(outputs, targets)
             total_loss += loss.item()
 
-            outputs = torch.sigmoid(outputs)
-            outputs = (outputs > 0.5).float()
+            # Sigmoid to convert logits to probabilities
+            probabilities = torch.sigmoid(outputs).cpu().numpy()
+            targets = targets.cpu().numpy()
 
-            y_score = torch.cat((y_score, outputs.cpu()), 0)
-            y_true = torch.cat((y_true, targets.cpu()), 0)
+            # Group predictions and true labels by patient_id
+            for patient_id, prob, target in zip(patient_ids, probabilities, targets):
+                if patient_id not in y_score_patient:
+                    y_score_patient[patient_id] = np.array([prob])  # Initialize as array
+                else:
+                    y_score_patient[patient_id] = np.append(y_score_patient[patient_id], prob)  # Append to array
 
+                y_true_patient[patient_id] = target  
+
+    # Compute metrics
     avg_loss = total_loss / len(loader)
     print(f"{mode} Loss: {avg_loss:.4f}")
     wandb.log({f"{mode.lower()}_loss": avg_loss})
-
-    # Compute metrics
-    y_score = y_score.detach().numpy()
-    y_true = y_true.detach().numpy()
-    accuracy = accuracy_score(y_true, y_score)
-    precision = precision_score(y_true, y_score)
-    recall = recall_score(y_true, y_score)
-    f1 = f1_score(y_true, y_score)
-
-    print(f"{mode} Metrics: Accuracy: {accuracy:.4f}, Precision: {precision:.4f}, Recall: {recall:.4f}, F1: {f1:.4f}")
-    wandb.log({
-        f"{mode.lower()}_accuracy": accuracy,
-        f"{mode.lower()}_precision": precision,
-        f"{mode.lower()}_recall": recall,
-        f"{mode.lower()}_f1_score": f1,
-    })
-
+    
+    
+    f1 = compute_patient_metrics(y_score_patient=y_score_patient, 
+                                 y_true_patient=y_true_patient,
+                                 mode=mode,
+                                 fold=fold)
+    
     if mode == "val" and best_f1 is not None and f1 > best_f1:
         best_f1 = f1
         torch.save(model.state_dict(), save_path)
         print(f"New best model saved with F1 score: {best_f1:.4f}")
 
-    if mode == "test":
-        roc_auc = roc_auc_score(y_true, y_score)
-        report = classification_report(y_true, y_score, target_names=["No Cardiopatia", "Cardiopatia"], output_dict=True)
-        wandb.log({
-            "roc_auc": roc_auc,
-            "precision_No_Cardiopatia": report["No Cardiopatia"]["precision"],
-            "recall_No_Cardiopatia": report["No Cardiopatia"]["recall"],
-            "f1_No_Cardiopatia": report["No Cardiopatia"]["f1-score"],
-            "precision_Cardiopatia": report["Cardiopatia"]["precision"],
-            "recall_Cardiopatia": report["Cardiopatia"]["recall"],
-            "f1_Cardiopatia": report["Cardiopatia"]["f1-score"]
-        })
-
-    return best_f1 if mode == "Validation" else None
+    return best_f1, f1, avg_loss if mode == "val" else None

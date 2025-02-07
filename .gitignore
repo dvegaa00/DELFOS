@@ -1,1 +1,9 @@
-img_script/img_checkpoints/
+img_script/wandb/
+img_script/image_checkpoints/
+img_script/img_models/MedViT_small_im1k.pth
+multimodal_script/wandb/
+multimodal_script/multimodal_checkpoints/
+tabular_script/tabular_checkpoints/
+multimodal_script/pr_curve/
+img_script/pr_curve/
+__pycache__/

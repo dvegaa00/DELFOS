@@ -3,16 +3,20 @@ from torch.utils.data import DataLoader, WeightedRandomSampler
 import os 
 import numpy as np
 import random
+import pathlib
+import sys
 
-seed = 42
-torch.manual_seed(seed)
-torch.cuda.manual_seed(seed)
+delfos_path = pathlib.Path(__name__).resolve().parent.parent
+sys.path.append(str(delfos_path))
+from utils import *
+
+set_seed(42)
+generator = torch.Generator()
+generator.manual_seed(42)  
 torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
-np.random.seed(seed)
-random.seed(seed)
 
 def create_dataloaders(dataset_dir, json_root, dataset_class, transform_train, transform_test, batch_size, fold, args, multimodal=False):
+    set_seed(42)
     """
     Creates dataloaders for training, validation, and testing with weighted sampling for class imbalance.
 
@@ -51,13 +55,13 @@ def create_dataloaders(dataset_dir, json_root, dataset_class, transform_train, t
         sample_weights = [class_weights[label] for _, label in dataset_train]
 
         # Create WeightedRandomSampler
-        sampler = WeightedRandomSampler(sample_weights, num_samples=len(sample_weights), replacement=True)
+        sampler = WeightedRandomSampler(sample_weights, num_samples=len(sample_weights), replacement=True, generator=generator)
 
         # Train DataLoader
-        train_loader = DataLoader(dataset_train, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=8, pin_memory=True)
+        train_loader = DataLoader(dataset_train, batch_size=batch_size, sampler=sampler, shuffle=False, num_workers=0, pin_memory=True)
     else:
         print("No sampling implemented")
-        train_loader = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=True)
+        train_loader = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True)
         num_negatives = 1
         num_positives = 1
 
@@ -68,7 +72,7 @@ def create_dataloaders(dataset_dir, json_root, dataset_class, transform_train, t
         else:
             dataset_val = dataset_class(root=val_dir, transform=transform_test)
             
-        val_loader = DataLoader(dataset_val, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True)
+        val_loader = DataLoader(dataset_val, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
     else: 
         val_loader = None
 
@@ -78,6 +82,6 @@ def create_dataloaders(dataset_dir, json_root, dataset_class, transform_train, t
     else:
         dataset_test = dataset_class(root=test_dir, transform=transform_test)
         
-    test_loader = DataLoader(dataset_test, batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True)
+    test_loader = DataLoader(dataset_test, batch_size=batch_size, shuffle=False, num_workers=0, pin_memory=True)
 
     return train_loader, val_loader, test_loader, num_negatives, num_positives

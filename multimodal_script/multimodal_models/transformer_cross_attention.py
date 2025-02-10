@@ -23,10 +23,8 @@ class TransformerCrossAttention(nn.Module):
             nn.ReLU(inplace=True)
         )
 
-        # Positional encoding for image features (query)
-        self.positional_encoding = PositionalEncoding(embed_dim, dropout)
-
         # Transformer Decoder
+        """
         decoder_layer = nn.TransformerDecoderLayer(
             d_model=embed_dim,
             nhead=num_heads,
@@ -34,6 +32,14 @@ class TransformerCrossAttention(nn.Module):
             dropout=dropout,
             batch_first=True
         )
+        """
+        decoder_layer = CustomTransformerDecoderLayer(
+            d_model=embed_dim,
+            nhead=num_heads,
+            dim_feedforward=embed_dim * 2,
+            dropout=dropout,
+            batch_first=True
+)
         
         self.decoder_img = nn.TransformerDecoder(decoder_layer, num_layers=num_layers)
         self.decoder_tab = nn.TransformerDecoder(decoder_layer, num_layers=num_layers)
@@ -52,7 +58,7 @@ class TransformerCrossAttention(nn.Module):
             nn.Linear(embed_dim // 4, num_classes)
         )
         
-    def forward(self, img_input, tab_input):
+    def forward(self, img_input, tab_input, return_attn=False):
         """
         Args:
             img_input: Image input tensor (batch_size, num_img_features, img_feature_dim)
@@ -69,11 +75,7 @@ class TransformerCrossAttention(nn.Module):
         with torch.no_grad() if self.args.tab_checkpoint else torch.enable_grad():
             tab_features = self.tab_model(tab_input)
         tab_features = self.tab_proj(tab_features).unsqueeze(0)
-        
-        # Add positional encoding to image and tabular features
-        #img_features = self.positional_encoding(img_features)
-        #tab_features = self.positional_encoding(tab_features)
-        
+
         img_features = self.decoder_img(
             tgt=img_features,  # Query features (images)
             memory=tab_features  # Key-value features (tabular data)
@@ -92,35 +94,55 @@ class TransformerCrossAttention(nn.Module):
         
         logits = self.classifier(output)
         
+        if return_attn:
+            self_attn_img = self.decoder_img.layers[0].self_attn_weights  # Self-attention for images
+            cross_attn_img = self.decoder_img.layers[0].cross_attn_weights  # Cross-attention for images
+            self_attn_tab = self.decoder_tab.layers[0].self_attn_weights  # Self-attention for tabular
+            cross_attn_tab = self.decoder_tab.layers[0].cross_attn_weights  # Cross-attention for tabular
+            return logits, self_attn_img, cross_attn_img, self_attn_tab, cross_attn_tab
+            
         return logits
 
+# Modified Decoder to store attention weigths for visualization
+import torch.nn as nn
+import torch
 
-class PositionalEncoding(nn.Module):
-    def __init__(self, embed_dim, dropout=0.1, max_len=5000):
-        super().__init__()
-        self.dropout = nn.Dropout(p=dropout)
+class CustomTransformerDecoderLayer(nn.TransformerDecoderLayer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.self_attn_weights = None  # Store self-attention weights
+        self.cross_attn_weights = None  # Store cross-attention weights
 
-        # Generar codificación posicional
-        pe = torch.zeros(max_len, embed_dim)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, embed_dim, 2).float() * (-torch.log(torch.tensor(10000.0)) / embed_dim))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0)
-        self.register_buffer("pe", pe)
+    def forward(self, tgt, memory, tgt_mask=None, memory_mask=None,
+                tgt_key_padding_mask=None, memory_key_padding_mask=None, 
+                tgt_is_causal=None, memory_is_causal=None):
+        """
+        Handles self-attention and cross-attention storage.
+        - tgt: Query sequence (modality itself, e.g., image or tabular features)
+        - memory: Key-Value sequence (other modality)
+        """
 
-    def forward(self, x):
-        x = x + self.pe[:, :x.size(1), :]
-        return self.dropout(x)
+        # Self-Attention: How much tgt attends to itself
+        tgt2, self_attn_weights = self.self_attn(
+            tgt, tgt, tgt,  
+            attn_mask=tgt_mask,
+            key_padding_mask=tgt_key_padding_mask,
+            need_weights=True  
+        )
+        self.self_attn_weights = self_attn_weights
 
-# Cross-Attention Layer
-class CrossAttentionFusion(nn.Module):
-    def __init__(self, embed_dim, num_heads, dropout=0.1):
-        super().__init__()
-        self.multihead_attn = nn.MultiheadAttention(embed_dim, num_heads, dropout=dropout, batch_first=True)
-        self.norm = nn.LayerNorm(embed_dim)
-        self.dropout = nn.Dropout(dropout)
-    
-    def forward(self, query, key_value):
-        attn_output, _ = self.multihead_attn(query, key_value, key_value)
-        return self.norm(query + self.dropout(attn_output))
+        # Cross-Attention: How much tgt attends to memory
+        tgt3, cross_attn_weights = self.multihead_attn(
+            tgt2, memory, memory,  
+            attn_mask=memory_mask,
+            key_padding_mask=memory_key_padding_mask,
+            need_weights=True  
+        )
+        self.cross_attn_weights = cross_attn_weights
+
+        # Continue normal processing with correct arguments
+        return super().forward(
+            tgt, memory, tgt_mask=tgt_mask, memory_mask=memory_mask,
+            tgt_key_padding_mask=tgt_key_padding_mask, memory_key_padding_mask=memory_key_padding_mask,
+            tgt_is_causal=tgt_is_causal, memory_is_causal=memory_is_causal
+        )

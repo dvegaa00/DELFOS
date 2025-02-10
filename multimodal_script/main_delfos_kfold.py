@@ -124,7 +124,13 @@ for fold in range(folds):
     
     print(loss_weights)
     
-    #criterion_smooth = BCEWithLogitsLossLabelSmoothing(alpha=0.1, pos_weight=loss_weights)
+    if args.smooth_label:
+        print("Applying smooth label")
+        criterion_train = BCEWithLogitsLossLabelSmoothing(alpha=0.05, pos_weight=loss_weights)
+    else:
+        criterion_train = nn.BCEWithLogitsLoss(pos_weight=loss_weights).to(device)
+    
+    # Criterion test 
     criterion = nn.BCEWithLogitsLoss(pos_weight=loss_weights).to(device)
 
     # Define optimizer
@@ -142,7 +148,7 @@ for fold in range(folds):
         print(f"Epoch [{epoch+1}/{args.num_epochs}]")
 
         # Training phase
-        train_one_epoch(multimodal_model, train_loader, criterion, optimizer, epoch, device, fold, args)
+        train_one_epoch(multimodal_model, train_loader, criterion_train, optimizer, epoch, device, fold, args)
 
         #Validation phase
         best_f1, current_f1, val_loss = evaluate(multimodal_model, test_loader, criterion, device, fold, args, mode="val", save_path=save_path, best_f1=best_f1)

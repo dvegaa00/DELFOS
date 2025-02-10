@@ -62,8 +62,8 @@ def main(input_file, output_dir, image_folder_path):
 
 
 if __name__ == "__main__":
-    input_file = "DELFOS/data/TabularData/delfos_clinical_data_wm.json"  
-    output_dir = "DELFOS/data/TabularData/output_folds" 
-    image_folder_path = "./delfos_images_kfold"  # Carpeta con los IDs de las imágenes
+    input_file = "data/TabularData/delfos_clinical_data_wnm.json"  
+    output_dir = "./data/TabularData/output_folds" 
+    image_folder_path = "/home/hceballos/anaconda3/DELFOS/delfos_images_kfold"  # Carpeta con los IDs de las imágenes
 
     main(input_file, output_dir, image_folder_path)

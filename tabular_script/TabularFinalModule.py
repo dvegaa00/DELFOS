@@ -97,6 +97,6 @@ if __name__ == "__main__":
     parser.add_argument("--scheduler_step", type=int, default=14, help="Step size para el scheduler")
     parser.add_argument("--scheduler_gamma", type=float, default=0.5, help="Gamma para el scheduler")
     parser.add_argument("--loss_weight_factor", type=float, default=0.6, help="Factor de peso para la pérdida")
-    parser.add_argument("--weights_dir", type=str, default="./model_weights", help="Directorio para guardar los pesos de los modelos")
+    parser.add_argument("--weights_dir", type=str, default="./tabular_script/tab_models", help="Directorio para guardar los pesos de los modelos")
     args = parser.parse_args()
     main(args)

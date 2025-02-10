@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score
 import os
 import numpy as np
+from tab_models.TabularModel import TabTransformer
 from utils import *
 
 
